@@ -1,6 +1,12 @@
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <_ansi.h>
+#include <sys/types.h>
+#include <sys/fcntl.h>
+#include <sys/times.h>
+#include <sys/errno.h>
+#include <sys/time.h>
+#include <stdio.h>
+
+//#include <_ansi.h>
 #include <errno.h>
 
 // --- Process Control ---
@@ -88,7 +94,7 @@ lseek(int file, int ptr, int dir) {
 }
 
 int
-open(const char *name, int flags, int mode) {
+open(const char *name, int flags, ...) {
 	return -1;
 }
 
@@ -100,7 +106,7 @@ read(int file, char *ptr, int len) {
 }
 
 int 
-_stat(int file, struct stat *st) {
+stat(const char* file, struct stat *st) {
 	st->st_mode = S_IFCHR;
 	return 0;
 }
@@ -182,6 +188,8 @@ sbrk(int nbytes){
 
 // --- Other ---
 
-int times(struct tms *buf) {
+//int times(struct tms *buf) {
+//int gettimeofday(struct timeval *p, struct timezone *z){
+int gettimeofday(struct timeval *p, void *z){
 	return -1;
 }
