@@ -105,6 +105,11 @@ read(int file, char *ptr, int len) {
 	return 0;
 }
 
+int fstat(int file, struct stat *st) {
+	st->st_mode = S_IFCHR;
+	return 0;
+}
+
 int 
 stat(const char* file, struct stat *st) {
 	st->st_mode = S_IFCHR;
