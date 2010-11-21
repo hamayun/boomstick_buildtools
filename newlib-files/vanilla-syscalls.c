@@ -1,5 +1,5 @@
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <sys/times.h>
 #include <sys/errno.h>
@@ -13,6 +13,7 @@
 
 int
 _exit(int val){
+  exit(val);
   return (-1);
 }
 
@@ -69,23 +70,11 @@ wait(int *status) {
  *           returns 0 if not. Since we're hooked up to a
  *           serial port, we'll say yes and return a 1.
  */
-
-
-int gibOpen(const char* name, unsigned int nameLen, char readOnly);
-int gibRead(int fd, void* buf, unsigned int len);
-int gibWrite(int fd, void* buf, unsigned int len);
-unsigned long long initHeap();
-
-
 int
 isatty(fd)
      int fd;
 {
-	if(fd < 3){
-		return 1;
-	}else{
-		return 0;
-	}
+  return (1);
 }
 
 
@@ -117,21 +106,16 @@ read(int file, char *ptr, int len) {
 	return 0;
 }
 
-int fstat(int file, struct stat *st) {
-	st->st_mode = S_IFCHR;
-	return 0;
-}
-
 int 
-stat(const char* file, struct stat *st) {
+fstat(int file, struct stat *st) {
 	st->st_mode = S_IFCHR;
 	return 0;
 }
 
 int
-link(char *old, char *new) {
-	errno = EMLINK;
-	return -1;
+stat(const char *file, struct stat *st){
+	st->st_mode = S_IFCHR;
+	return 0;
 }
 
 int
@@ -141,9 +125,19 @@ unlink(char *name) {
 }
 
 
+int
+write(int file, char *ptr, int len) {
+	return -1;
+}
+
 // --- Memory ---
+
+/* _end is set in the linker command file */
+extern caddr_t _end;
+
 #define PAGE_SIZE 4096ULL
 #define PAGE_MASK 0xFFFFFFFFFFFFF000ULL
+#define HEAP_ADDR (((unsigned long long)&_end + PAGE_SIZE) & PAGE_MASK)
 
 /*
  * sbrk -- changes heap size size. Get nbytes more
@@ -152,25 +146,19 @@ unlink(char *name) {
  */
 caddr_t
 sbrk(int nbytes){
-  static unsigned long long heap_ptr = 0;
+  static caddr_t heap_ptr = NULL;
   caddr_t base;
   
-  // TODO: REPLACE allocPage with a call to a page allocator
   int temp;
 
-  if(heap_ptr == 0){
-    heap_ptr = initHeap();
+  if(heap_ptr == NULL){
+    heap_ptr = (caddr_t)HEAP_ADDR;
   }
 
-  base = (caddr_t)heap_ptr;
+  base = heap_ptr;
 
-	if(nbytes < 0){
-		heap_ptr -= nbytes;
-		return base;
-	}
-
-  if( (heap_ptr & ~PAGE_MASK) != 0ULL){
-    temp = (PAGE_SIZE - (heap_ptr & ~PAGE_MASK));
+  if(((unsigned long long)heap_ptr & ~PAGE_MASK) != 0ULL){
+    temp = (PAGE_SIZE - ((unsigned long long)heap_ptr & ~PAGE_MASK));
 
     if( nbytes < temp ){
       heap_ptr += nbytes;
@@ -182,23 +170,36 @@ sbrk(int nbytes){
   }
 
   while(nbytes > PAGE_SIZE){
-	//
-    // allocPage(heap_ptr);
-	//
+    //allocPage(heap_ptr);
+		
     nbytes -= (int) PAGE_SIZE;
     heap_ptr = heap_ptr + PAGE_SIZE;
   }
   
   if( nbytes > 0){
-	//
-    // allocPage(heap_ptr);
-	//
+    //allocPage(heap_ptr);
 
     heap_ptr += nbytes;
   }
 
 
   return base;
+	/*
+  static caddr_t heap_ptr = NULL;
+  caddr_t        base;
+
+  if (heap_ptr == NULL) {
+    heap_ptr = (caddr_t)&_end;
+  }
+
+  if ((RAMSIZE - heap_ptr) >= 0) {
+    base = heap_ptr;
+    heap_ptr += nbytes;
+    return (base);
+  } else {
+    errno = ENOMEM;
+    return ((caddr_t)-1);
+		}*/
 }
 
 
@@ -207,8 +208,3 @@ sbrk(int nbytes){
 	 return -1;
  }
 
-//int times(struct tms *buf) {
-//int gettimeofday(struct timeval *p, struct timezone *z){
-int gettimeofday(struct timeval *p, void *z){
-	return -1;
-}

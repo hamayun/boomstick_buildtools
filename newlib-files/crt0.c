@@ -1,5 +1,5 @@
 
-extern int main(int argc, char **argv, char **environ);
+extern int main(); //int argc, char **argv, char **environ);
 
 extern char __bss_start, _end; // BSS should be the last think before _end
 
