@@ -1,214 +1,235 @@
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/fcntl.h>
 #include <sys/times.h>
 #include <sys/errno.h>
 #include <sys/time.h>
 #include <stdio.h>
 
-//#include <_ansi.h>
 #include <errno.h>
 
+extern caddr_t PLATFORM_DEBUG_CHARPORT;
+extern caddr_t CPU_HEAP_START;
+extern caddr_t CPU_HEAP_END;
+extern void platform_debug_puts (char * string);
+extern void platform_debug_puts_len (char * string, int len);
+
+char *__env[1] = { 0 };
+char **environ = __env;
+struct timeval;
+
+/*
+#include <reent.h>
+
+struct _reent _impure_data = _REENT_INIT(_impure_data);
+struct _reent * _impure_ptr = &_impure_data;
+struct _reent *_CONST _global_impure_ptr = &_impure_data;
+*/
+
 // --- Process Control ---
-
-int
-_exit(int val){
-  return (-1);
-}
-
-int
-execve(char *name, char **argv, char **env) {
-	errno = ENOMEM;
-	return -1;
-}
-
-/*
- * getpid -- only one process, so just return 1.
- */
-#define __MYPID 1
-int
-getpid()
+int execve(char  *name, char **argv, char **env)
 {
-  return __MYPID;
+	platform_debug_puts("SysCall: execve\n");
+    errno = ENOSYS;
+    return -1;
 }
 
-
-int 
-fork(void) {
-	errno = ENOTSUP;
-	return -1;
-}
-
-
-/*
- * kill -- go out via exit...
- */
-int
-kill(pid, sig)
-     int pid;
-     int sig;
+void _exit()
 {
-  if(pid == __MYPID)
-    _exit(sig);
-
-
-	errno = EINVAL;
-  return -1;
+	platform_debug_puts("SysCall: _exit\n");
+    /* Convince GCC that this function never returns.  */
+    for (;;)
+        ;
 }
 
-int
-wait(int *status) {
-	errno = ECHILD;
-	return -1;
+int fork()
+{
+	platform_debug_puts("SysCall: fork\n");
+    errno = ENOSYS;
+    return -1;
+}
+
+int getpid()
+{
+	platform_debug_puts("SysCall: getpid\n");
+    return 1;     // MYPID
+}
+
+int kill(int pid, int sig)
+{
+	platform_debug_puts("SysCall: kill\n");
+    errno = ENOSYS;
+    return -1;
+}
+
+int wait(int *status)
+{
+	platform_debug_puts("SysCall: wait\n");
+    errno = ENOSYS;
+    return -1;
+}
+
+// --- Memory ---
+caddr_t sbrk(int incr)
+{
+    static caddr_t ptr_heap_loc = NULL;
+    caddr_t ptr_start = NULL;
+	platform_debug_puts("SysCall: sbrk\n");
+
+    if(!ptr_heap_loc)
+    {
+        ptr_heap_loc = CPU_HEAP_START;
+    }
+
+    if((ptr_heap_loc + incr) < CPU_HEAP_END)
+    {
+        ptr_start = (caddr_t)(((unsigned int)(ptr_heap_loc + 8)) & 0xFFFFFFF8);
+        ptr_heap_loc = ptr_heap_loc + incr;
+        return ptr_start;
+    }
+
+    errno = ENOMEM;
+    return -1;
 }
 
 // --- I/O ---
-
-/*
- * isatty -- returns 1 if connected to a terminal device,
- *           returns 0 if not. Since we're hooked up to a
- *           serial port, we'll say yes and return a 1.
- */
-
-
-int gibOpen(const char* name, unsigned int nameLen, char readOnly);
-int gibRead(int fd, void* buf, unsigned int len);
-int gibWrite(int fd, void* buf, unsigned int len);
-unsigned long long initHeap();
-
-
-int
-isatty(fd)
-     int fd;
+int chown(const char *path, uid_t owner, gid_t group)
 {
-	if(fd < 3){
-		return 1;
-	}else{
-		return 0;
-	}
+	platform_debug_puts("SysCall: chown\n");
+    errno = ENOSYS;
+    return -1;
 }
 
-
-int
-close(int file) {
-	return -1;
+int close(int file)
+{
+	platform_debug_puts("SysCall: close\n");
+    errno = ENOSYS;
+    return -1;
 }
 
-int
-link(char *old, char *new) {
-	errno = EMLINK;
-	return -1;
+int fstat(int file, struct stat *st)
+{
+	platform_debug_puts("SysCall: fstat\n");
+    st -> st_mode = S_IFCHR;
+    return 0;
 }
 
-int
-lseek(int file, int ptr, int dir) {
-	return 0;
+int isatty(int file)
+{
+	platform_debug_puts("SysCall: istty\n");
+    return 1;
 }
 
-int
-open(const char *name, int flags, ...) {
-	return -1;
+int link(char *old, char *new)
+{
+	platform_debug_puts("SysCall: link\n");
+    errno = EMLINK;
+    return -1;
 }
 
-int
-read(int file, char *ptr, int len) {
-	// XXX: keyboard support
-
-	return 0;
+int open(const char *name, int flags, ...)
+{
+	platform_debug_puts("SysCall: open\n");
+    errno = ENOSYS;
+    return -1;
 }
 
-int fstat(int file, struct stat *st) {
-	st->st_mode = S_IFCHR;
-	return 0;
+int read(int file, char *ptr, int len)
+{
+	platform_debug_puts("SysCall: read\n");
+//    errno = ENOSYS;
+//    return -1;
+    return 0;
 }
 
-int 
-stat(const char* file, struct stat *st) {
-	st->st_mode = S_IFCHR;
-	return 0;
+int readlink(const char *path, char *buf, size_t bufsize)
+{
+	platform_debug_puts("SysCall: readlink\n");
+    errno = ENOSYS;
+    return -1;
 }
 
-int
-link(char *old, char *new) {
-	errno = EMLINK;
-	return -1;
+int getdents(unsigned int fd, struct dirent *dirp, unsigned int count)
+{
+	platform_debug_puts("SysCall: getdents\n");
+    errno = ENOSYS;
+    return -1;
 }
 
-int
-unlink(char *name) {
-	errno = ENOENT;
-	return -1;
+int ioctl(int fd, int request, ...)
+{
+	platform_debug_puts("SysCall: ioctl\n");
+    errno = ENOSYS;
+    return -1;
 }
 
+int lseek(int file, off_t ptr, int dir)
+{
+	platform_debug_puts("SysCall: lseek\n");
+    return 0;
+}
 
-// --- Memory ---
-#define PAGE_SIZE 4096ULL
-#define PAGE_MASK 0xFFFFFFFFFFFFF000ULL
+int stat(const char *file, struct stat *st)
+{
+	platform_debug_puts("SysCall: stat\n");
+    st -> st_mode = S_IFCHR;
+    return 0;
+}
 
-/*
- * sbrk -- changes heap size size. Get nbytes more
- *         RAM. We just increment a pointer in what's
- *         left of memory on the board.
- */
-caddr_t
-sbrk(int nbytes){
-  static unsigned long long heap_ptr = 0;
-  caddr_t base;
-  
-  // TODO: REPLACE allocPage with a call to a page allocator
-  int temp;
+int symlink(const char *path1, const char *path2)
+{
+	platform_debug_puts("SysCall: symlink\n");
+    errno = ENOSYS;
+    return -1;
+}
 
-  if(heap_ptr == 0){
-    heap_ptr = initHeap();
-  }
+int unlink(char *name)
+{
+	platform_debug_puts("SysCall: unlink\n");
+    errno = EMLINK;
+    return -1;
+}
 
-  base = (caddr_t)heap_ptr;
+int write(int file, char *ptr, int len)
+{
+    switch(file)
+    {
+        case 1: /* stdout */
+            platform_debug_puts_len(ptr, len);            
+            return len;
+        break;
 
-	if(nbytes < 0){
-		heap_ptr -= nbytes;
-		return base;
-	}
-
-  if( (heap_ptr & ~PAGE_MASK) != 0ULL){
-    temp = (PAGE_SIZE - (heap_ptr & ~PAGE_MASK));
-
-    if( nbytes < temp ){
-      heap_ptr += nbytes;
-      nbytes = 0;
-    }else{
-      heap_ptr += temp;
-      nbytes -= temp;
+        case 2: /* stderr */
+            //printf("file = %d, len = %d, ptr = %s\n", file, len, ptr);
+            platform_debug_puts_len(ptr, len);
+            return len;
+        break;
     }
-  }
 
-  while(nbytes > PAGE_SIZE){
-	//
-    // allocPage(heap_ptr);
-	//
-    nbytes -= (int) PAGE_SIZE;
-    heap_ptr = heap_ptr + PAGE_SIZE;
-  }
-  
-  if( nbytes > 0){
-	//
-    // allocPage(heap_ptr);
-	//
-
-    heap_ptr += nbytes;
-  }
-
-
-  return base;
+    return -1;
 }
-
 
 // --- Other ---
- int gettimeofday(struct timeval *p, void *z){
-	 return -1;
- }
-
-//int times(struct tms *buf) {
-//int gettimeofday(struct timeval *p, struct timezone *z){
-int gettimeofday(struct timeval *p, void *z){
-	return -1;
+#ifndef _REENT_ONLY
+extern int errno;
+int * __errno ()
+{
+    return & errno;
 }
+#endif
+
+int gettimeofday(struct timeval *p, void *z)
+{
+	platform_debug_puts("SysCall: gettimeofday\n");
+    errno = ENOSYS;
+    return -1;
+}
+
+clock_t times(struct tms *buf)
+{
+	platform_debug_puts("SysCall: times\n");
+    errno = ENOSYS;
+    return -1;
+}
+
+

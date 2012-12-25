@@ -1,22 +1,21 @@
-
 extern int main(); //int argc, char **argv, char **environ);
+extern int CPU_BSS_START, CPU_BSS_END; // BSS should be the last think before _end
 
-extern char __bss_start, _end; // BSS should be the last think before _end
+// TODO: environment
+//char *__env[1] = { 0 };
+//char **environ = __env;
 
-// XXX: environment
-char *__env[1] = { 0 };
-char **environ = __env;
-
-_start(){
-  char *i;
+int kvm_kickstart()
+{
+  int *i;
 
   // zero BSS
-  for(i = &__bss_start; i < &_end; i++){
-    *i = 0; 
-  } 
+  for(i = (int *) CPU_BSS_START; i < (int *) CPU_BSS_END; i++)
+  {
+    *i = 0;
+  }
 
-
-  // XXX: get argc and argv
-
-  exit(main(0,0, __env));
+  // TODO: get argc and argv
+//  exit(main(0,0, __env));
+  main();
 }
